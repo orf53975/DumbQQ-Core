@@ -5,16 +5,19 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
+//using System.Web;
 using DumbQQ.Constants;
 using DumbQQ.Models;
 using DumbQQ.Utils;
-using EasyHttp.Http;
-using EasyHttp.Infrastructure;
+//using EasyHttp.Http;
+//using EasyHttp.Infrastructure;
 using log4net;
 using log4net.Config;
+using log4net.Repository;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using HttpClient = EasyHttp.Http.HttpClient;
+//using HttpClient = EasyHttp.Http.HttpClient;
 
 namespace DumbQQ.Client
 {
@@ -89,15 +92,17 @@ namespace DumbQQ.Client
         }
 
         internal const long ClientId = 53999199;
-        internal static readonly ILog Logger = LogManager.GetLogger(typeof(DumbQQClient));
+        internal static readonly ILoggerRepository repository = LogManager.CreateRepository("DumbQQCore");
+        internal static readonly ILog Logger = LogManager.GetLogger(repository.Name, "DumbQQCoreLog");
         private static long _messageId = 43690001;
 
         // 数据缓存
         private readonly CacheDepot _cache;
         private readonly Cache<FriendInfo> _myInfoCache;
         private readonly CacheDictionary<long, long> _qqNumberCache;
-
-        internal readonly HttpClient Client = new HttpClient();
+        public static HttpClientHandler handler = new HttpClientHandler();
+        public static CookieContainer cookies = new CookieContainer();
+        internal readonly HttpClient Client = new HttpClient(handler);
 
         // 线程开关
         private volatile bool _pollStarted;
@@ -117,12 +122,15 @@ namespace DumbQQ.Client
         /// </summary>
         public DumbQQClient()
         {
-            XmlConfigurator.Configure();
-            Client.Request.UserAgent = ApiUrl.UserAgent;
-            Client.Request.PersistCookies = true;
-            Client.Request.KeepAlive = true;
-            Client.Request.Accept = null;
-            Client.ThrowExceptionOnHttpError = false;
+            BasicConfigurator.Configure(repository);
+            handler.UseCookies = true;
+            handler.CookieContainer = cookies;
+            Client.DefaultRequestHeaders.Add("User-Agent", ApiUrl.UserAgent);
+            Client.DefaultRequestHeaders.Add("KeepAlive", "true");
+            //Client.Request.PersistCookies = true;
+            //Client.DefaultRequestHeaders.KeepAlive = true;
+            //Client.DefaultRequestHeaders.Accept = null;
+            //Client.ThrowExceptionOnHttpError = false;
             _cache = new CacheDepot(CacheTimeout);
             _myInfoCache = new Cache<FriendInfo>(CacheTimeout);
             _qqNumberCache = new CacheDictionary<long, long>(CacheTimeout);
@@ -159,13 +167,12 @@ namespace DumbQQ.Client
             {
                 if (Status != ClientStatus.Active)
                     throw new InvalidOperationException("尚未登录，无法进行该操作");
-                FriendInfo cachedInfo;
-                if (_myInfoCache.TryGetValue(out cachedInfo))
+                if (_myInfoCache.TryGetValue(out FriendInfo cachedInfo))
                     return cachedInfo;
                 Logger.Debug("开始获取登录账户信息");
-
                 var response = Client.Get(ApiUrl.GetAccountInfo);
-                var info = ((JObject) GetResponseJson(response)["result"]).ToObject<FriendInfo>();
+                FriendInfo info = null;
+                info = ((JObject)GetResponseJson(response)["result"]).ToObject<FriendInfo>();
                 _myInfoCache.SetValue(info);
                 return info;
             }
@@ -295,8 +302,7 @@ namespace DumbQQ.Client
         {
             if (Status != ClientStatus.Active)
                 throw new InvalidOperationException("尚未登录，无法进行该操作");
-            List<T> tempData;
-            if (_cache.GetCache<List<T>>().TryGetValue(out tempData))
+            if (_cache.GetCache<List<T>>().TryGetValue(out List<T> tempData))
             {
                 Logger.Debug("加载了缓存的" + typeof(T).Name + "列表");
                 return tempData;
@@ -306,22 +312,22 @@ namespace DumbQQ.Client
             switch (typeof(T).Name)
             {
                 case "ChatHistory":
-                    result = (List<T>) (object) ChatHistory.GetList(this);
+                    result = (List<T>)(object)ChatHistory.GetList(this);
                     break;
                 case "Discussion":
-                    result = (List<T>) (object) Discussion.GetList(this);
+                    result = (List<T>)(object)Discussion.GetList(this);
                     break;
                 case "Friend":
-                    result = (List<T>) (object) Friend.GetList(this);
+                    result = (List<T>)(object)Friend.GetList(this);
                     break;
                 case "FriendCategory":
-                    result = (List<T>) (object) FriendCategory.GetList(this);
+                    result = (List<T>)(object)FriendCategory.GetList(this);
                     break;
                 case "FriendStatus":
-                    result = (List<T>) (object) FriendStatus.GetList(this);
+                    result = (List<T>)(object)FriendStatus.GetList(this);
                     break;
                 case "Group":
-                    result = (List<T>) (object) Group.GetList(this);
+                    result = (List<T>)(object)Group.GetList(this);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -335,7 +341,7 @@ namespace DumbQQ.Client
         /// </summary>
         /// <param name="userId">用户ID。</param>
         /// <returns>QQ号。</returns>
-        public long GetQQNumberOf(long userId)
+        public async Task<long> GetQQNumberOf(long userId)
         {
             if (Status != ClientStatus.Active)
                 throw new InvalidOperationException("尚未登录，无法进行该操作");
@@ -349,7 +355,7 @@ namespace DumbQQ.Client
 
             var qq =
             ((JObject)
-                JObject.Parse(Client.Get(ApiUrl.GetQQById, userId, Vfwebqq, RandomHelper.GetRandomDouble()).RawText)[
+                JObject.Parse(await Client.Get(ApiUrl.GetQQById, userId, Vfwebqq, RandomHelper.GetRandomDouble()).Content.ReadAsStringAsync())[
                     "result"])["account"].Value<long>();
             _qqNumberCache.Put(userId, qq);
             return qq;
@@ -361,7 +367,7 @@ namespace DumbQQ.Client
         /// <param name="type">目标类型。</param>
         /// <param name="id">用于发送的ID。</param>
         /// <param name="content">消息内容。</param>
-        public void Message(TargetType type, long id, string content)
+        public async void Message(TargetType type, long id, string content)
         {
             if (Status != ClientStatus.Active)
                 throw new InvalidOperationException("尚未登录，无法进行该操作");
@@ -388,7 +394,7 @@ namespace DumbQQ.Client
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
 
-            var response = Client.PostWithRetry(url, new JObject
+            var response =  Client.PostWithRetry(url, new JObject
             {
                 {paramName, id},
                 {
@@ -407,9 +413,9 @@ namespace DumbQQ.Client
             }, RetryTimes);
 
             if (response.StatusCode != HttpStatusCode.OK)
-                Logger.Error("消息发送失败，HTTP返回码" + (int) response.StatusCode);
+                Logger.Error("消息发送失败，HTTP返回码" + (int)response.StatusCode);
 
-            var status = JObject.Parse(response.RawText)["retcode"].ToObject<int?>();
+            var status = JObject.Parse(await response.Content.ReadAsStringAsync())["retcode"].ToObject<int?>();
             if (status != null && (status == 0 || status == 100100))
             {
                 Logger.Debug("消息发送成功");
@@ -418,20 +424,20 @@ namespace DumbQQ.Client
                 switch (type)
                 {
                     case TargetType.Friend:
-                    {
-                        args = new MessageEchoEventArgs(Friends.Find(_ => _.Id == id), content);
-                        break;
-                    }
+                        {
+                            args = new MessageEchoEventArgs(Friends.Find(_ => _.Id == id), content);
+                            break;
+                        }
                     case TargetType.Group:
-                    {
-                        args = new MessageEchoEventArgs(Groups.Find(_ => _.Id == id), content);
-                        break;
-                    }
+                        {
+                            args = new MessageEchoEventArgs(Groups.Find(_ => _.Id == id), content);
+                            break;
+                        }
                     case TargetType.Discussion:
-                    {
-                        args = new MessageEchoEventArgs(Discussions.Find(_ => _.Id == id), content);
-                        break;
-                    }
+                        {
+                            args = new MessageEchoEventArgs(Discussions.Find(_ => _.Id == id), content);
+                            break;
+                        }
                     default:
                         throw new ArgumentOutOfRangeException(nameof(type), type, null);
                 }
@@ -451,10 +457,6 @@ namespace DumbQQ.Client
         {
             if (Status != ClientStatus.Active)
                 throw new InvalidOperationException("仅在登录后才能导出cookie");
-            var cookieContainer = Client.Request.GetType()
-                .GetField(@"cookieContainer", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (cookieContainer == null)
-                throw new NotImplementedException("无法读取Cookie，可能是因为EasyHttp更改了HttpRequest类的内部结构；请Issue汇报该问题。");
             return new JObject
             {
                 {"hash", Hash},
@@ -464,7 +466,7 @@ namespace DumbQQ.Client
                 {"vfwebqq", Vfwebqq},
                 {
                     "cookies",
-                    JArray.FromObject(((CookieContainer) cookieContainer.GetValue(Client.Request)).GetAllCookies())
+                    JArray.FromObject((cookies.GetAllCookies()))
                 }
             }.ToString(Formatting.None);
         }
@@ -487,15 +489,15 @@ namespace DumbQQ.Client
                 Ptwebqq = dump["ptwebqq"].Value<string>();
                 Uin = dump["uin"].Value<long>();
                 Vfwebqq = dump["vfwebqq"].Value<string>();
-                var cookieContainerField = Client.Request.GetType()
-                    .GetField(@"cookieContainer", BindingFlags.NonPublic | BindingFlags.Instance);
-                if (cookieContainerField == null)
-                    throw new NotImplementedException("无法写入Cookie，可能是因为EasyHttp更改了HttpRequest类的内部结构；请Issue汇报该问题。");
-                var cookies = new CookieContainer();
-                foreach (var cookie in dump["cookies"].Value<JArray>().ToObject<List<Cookie>>())
-                    cookies.Add(cookie);
-                cookieContainerField.SetValue(Client.Request, cookies);
 
+                //var cookies = new CookieContainer();
+                var test = dump["cookies"].Value<JArray>().ToObject<List<Cookie>>();
+                foreach (var cookie in dump["cookies"].Value<JArray>().ToObject<List<Cookie>>())
+                {
+                    cookies.Add(new Uri("http://"+cookie.Domain), cookie);
+                }
+                //cookies.SetValue(Client.DefaultRequestHeaders, cookies);
+                handler.CookieContainer = cookies;
                 if (TestLogin())
                 {
                     Status = ClientStatus.Active;
@@ -543,9 +545,7 @@ namespace DumbQQ.Client
                 GetVfwebqq();
                 GetUinAndPsessionid();
                 if (!TestLogin())
-#pragma warning disable 612
                     ExtraLoginNeeded?.Invoke(this, @"http://w.qq.com");
-#pragma warning restore 612
                 Hash = StringHelper.SomewhatHash(Uin, Ptwebqq);
                 return LoginResult.Succeeded;
             }
@@ -561,13 +561,16 @@ namespace DumbQQ.Client
         }
 
         // 获取二维码
-        private void GetQrCode(Action<string> qrCodeDownloadedCallback)
+        private async void GetQrCode(Action<string> qrCodeDownloadedCallback)
         {
             Logger.Debug("开始获取二维码");
-            var filePath = Path.GetFullPath("qrcode" + RandomHelper.GetRandomInt() + ".png");
-
-            var response = Client.GetAsFile(ApiUrl.GetQrCode.Url, filePath);
-            foreach (Cookie cookie in response.Cookies)
+            var filePath = Path.GetFullPath("qrcode.png");
+            FileStream fs = new FileStream(filePath, FileMode.Create);
+            var response = await Client.GetAsync(ApiUrl.GetQrCode.Url);
+            byte[] bytes = await response.Content.ReadAsByteArrayAsync();
+            fs.Write(bytes, 0, bytes.Length);
+            fs.Dispose();
+            foreach (Cookie cookie in handler.CookieContainer.GetCookies(new Uri(ApiUrl.GetQrCode.Url)))
             {
                 if (cookie.Name != "qrsig") continue;
                 _qrsig = cookie.Value;
@@ -595,13 +598,13 @@ namespace DumbQQ.Client
             {
                 Thread.Sleep(1000);
                 var response = Client.Get(ApiUrl.VerifyQrCode, Hash33(_qrsig));
-                var result = response.RawText;
+                var result = response.Content.ReadAsStringAsync().Result;
                 if (result.Contains("成功"))
                 {
-                    var cookie = response.Cookies["ptwebqq"];
+                    var cookie = cookies.GetCookies(new Uri(ApiUrl.VerifyQrCode.Url))["ptwebqq"];
                     if (cookie != null) Ptwebqq = cookie.Value;
                     else throw new InvalidOperationException();
-                    foreach (var content in result.Split(new[] {"','"}, StringSplitOptions.None))
+                    foreach (var content in result.Split(new[] { "','" }, StringSplitOptions.None))
                     {
                         if (!content.StartsWith("http")) continue;
                         Logger.Info("正在登录，请稍后");
@@ -629,7 +632,7 @@ namespace DumbQQ.Client
             Logger.Debug("开始获取vfwebqq");
 
             var response = Client.Get(ApiUrl.GetVfwebqq, Ptwebqq);
-            Vfwebqq = ((JObject) GetResponseJson(response)["result"])["vfwebqq"].Value<string>();
+            Vfwebqq = ((JObject)GetResponseJson(response)["result"])["vfwebqq"].Value<string>();
         }
 
         // 获取uin和psessionid
@@ -646,7 +649,7 @@ namespace DumbQQ.Client
             };
 
             var response = Client.Post(ApiUrl.GetUinAndPsessionid, r);
-            var result = (JObject) GetResponseJson(response)["result"];
+            var result = (JObject)GetResponseJson(response)["result"];
             Psessionid = result["psessionid"].Value<string>();
             Uin = result["uin"].Value<long>();
         }
@@ -658,7 +661,7 @@ namespace DumbQQ.Client
 
             var result = Client.Get(ApiUrl.TestLogin, Vfwebqq, ClientId, Psessionid, RandomHelper.GetRandomDouble());
             return result.StatusCode == HttpStatusCode.OK &&
-                   JObject.Parse(result.RawText)["retcode"].Value<int?>() == 0;
+                   JObject.Parse(result.Content.ReadAsStringAsync().Result)["retcode"].Value<int?>() == 0;
         }
 
         // 开始消息轮询
@@ -679,8 +682,8 @@ namespace DumbQQ.Client
                     }
                     catch (Exception ex)
                     {
-                        if (!(ex is HttpRequestException) || !(ex.InnerException is HttpException) ||
-                            ((HttpException) ex.InnerException).StatusCode != HttpStatusCode.GatewayTimeout)
+                        //if (!(ex is HttpRequestException) || !(ex.InnerException is HttpException) ||
+                        //    (ex.InnerException).Message != HttpStatusCode.GatewayTimeout.ToString())
                             Logger.Error(ex);
                         // 自动掉线
                         if (TestLogin()) continue;
@@ -688,13 +691,14 @@ namespace DumbQQ.Client
                         ConnectionLost?.Invoke(this, EventArgs.Empty);
                     }
                 }
-            }) {IsBackground = true}.Start();
+            })
+            { IsBackground = true }.Start();
         }
 
         // 拉取消息
         private void PollMessage()
         {
-            Logger.Debug(DateTime.Now.ToLongTimeString() + " 开始接收消息");
+            Logger.Debug(DateTime.Now + " 开始接收消息");
 
             var r = new JObject
             {
@@ -708,7 +712,7 @@ namespace DumbQQ.Client
             var array = GetResponseJson(response)["result"] as JArray;
             for (var i = 0; array != null && i < array.Count; i++)
             {
-                var message = (JObject) array[i];
+                var message = (JObject)array[i];
                 var type = message["poll_type"].Value<string>();
                 switch (type)
                 {
@@ -748,12 +752,12 @@ namespace DumbQQ.Client
             _qqNumberCache.Clear();
         }
 
-        internal JObject GetResponseJson(HttpResponse response)
+        internal JObject GetResponseJson(HttpResponseMessage response)
         {
             if (response.StatusCode != HttpStatusCode.OK)
-                throw new HttpRequestException("请求失败，Http返回码" + (int) response.StatusCode + "(" + response.StatusCode +
-                                               ")", new HttpException(HttpStatusCode.GatewayTimeout, "Gateway Timeout"));
-            var json = JObject.Parse(response.RawText);
+                throw new HttpRequestException("请求失败，Http返回码" + (int)response.StatusCode + "(" + response.StatusCode +
+                                               ")", new Exception(HttpStatusCode.GatewayTimeout.ToString()));
+            var json = JObject.Parse(response.Content.ReadAsStringAsync().Result);
             var retCode = json["retcode"].Value<int?>();
             switch (retCode)
             {
@@ -765,7 +769,7 @@ namespace DumbQQ.Client
                     Logger.Error("请求失败，API返回码103；可能需要进一步登录。");
                     break;
                 default:
-                    throw new HttpRequestException("请求失败，API返回码" + retCode, new ApiException((int) retCode));
+                    throw new HttpRequestException("请求失败，API返回码" + retCode, new ApiException((int)retCode));
             }
             return json;
         }
@@ -776,7 +780,7 @@ namespace DumbQQ.Client
             var info = result["info"] as JArray;
             for (var i = 0; info != null && i < info.Count; i++)
             {
-                var x = (JObject) info[i];
+                var x = (JObject)info[i];
                 var friend = new Friend
                 {
                     Id = x["uin"].Value<long>(),
@@ -787,13 +791,13 @@ namespace DumbQQ.Client
             var marknames = result["marknames"] as JArray;
             for (var i = 0; marknames != null && i < marknames.Count; i++)
             {
-                var item = (JObject) marknames[i];
+                var item = (JObject)marknames[i];
                 friends[item["uin"].ToObject<long>()].Alias = item["markname"].ToObject<string>();
             }
             var vipinfo = result["vipinfo"] as JArray;
             for (var i = 0; vipinfo != null && i < vipinfo.Count; i++)
             {
-                var item = (JObject) vipinfo[i];
+                var item = (JObject)vipinfo[i];
                 var friend = friends[item["u"].Value<long>()];
                 friend.IsVip = item["is_vip"].Value<int>() == 1;
                 friend.VipLevel = item["vip_level"].Value<int>();
@@ -849,7 +853,7 @@ namespace DumbQQ.Client
         /// <returns>值是否有效。</returns>
         public bool TryGetValue<T>(out T target)
         {
-            target = (T) Value;
+            target = (T)Value;
             return IsValid;
         }
 
@@ -928,10 +932,7 @@ namespace DumbQQ.Client
             return _dic[typeof(T).FullName];
         }
 
-        public void Clear()
-        {
-            _dic.Clear();
-        }
+        public void Clear() => _dic.Clear();
     }
 
     /// <summary>

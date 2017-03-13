@@ -1,11 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Web;
-using EasyHttp.Http;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+using DumbQQ.Client;
+//using System.Web;
+//using EasyHttp.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using HttpResponse = EasyHttp.Http.HttpResponse;
+using HttpResponse = System.Net.Http.HttpResponseMessage;
 
 namespace DumbQQ.Constants
 {
@@ -132,12 +137,14 @@ namespace DumbQQ.Constants
         public string BuildUrl(params object[] args)
         {
             var i = 1;
+
             return args.Aggregate(Url, (current, arg) => current.Replace("{" + i++ + "}", arg.ToString()));
         }
     }
 
     internal static class ApiUrlMethods
     {
+
         /// <summary>
         ///     发送GET请求。
         /// </summary>
@@ -146,31 +153,22 @@ namespace DumbQQ.Constants
         /// <param name="args">附加的参数。</param>
         /// <returns></returns>
         public static HttpResponse Get(this HttpClient client, ApiUrl url, params object[] args)
-            => client.Get(url, null, args);
-
-        /// <summary>
-        ///     发送GET请求。
-        /// </summary>
-        /// <param name="client"></param>
-        /// <param name="url">URL。</param>
-        /// <param name="allowAutoRedirect">允许自动重定向。</param>
-        /// <param name="args">附加的参数。</param>
-        /// <returns></returns>
-        public static HttpResponse Get(this HttpClient client, ApiUrl url, bool? allowAutoRedirect, params object[] args)
         {
-            var referer = client.Request.Referer;
-            var autoRedirect = client.Request.AllowAutoRedirect;
-
-            client.Request.Referer = url.Referer;
-            if (allowAutoRedirect.HasValue)
-                client.Request.AllowAutoRedirect = allowAutoRedirect.Value;
-            var response = client.Get(url.BuildUrl(args));
-
+            var referer = client.DefaultRequestHeaders.Referrer;
+            //var autoRedirect = client.DefaultRequestHeaders.AllowAutoRedirect;
+            if (url.Referer != null)
+            {
+                client.DefaultRequestHeaders.Referrer = new Uri(url.Referer);
+            }
+            //if (allowAutoRedirect.HasValue)
+            //    client.Request.AllowAutoRedirect = allowAutoRedirect.Value;
+            var response = client.GetAsync(url.BuildUrl(args));
+            response.Wait();
             // 复原client
-            client.Request.Referer = referer;
-            client.Request.AllowAutoRedirect = autoRedirect;
+            client.DefaultRequestHeaders.Referrer = referer;
+            //client.Request.AllowAutoRedirect = autoRedirect;
 
-            return response;
+            return response.Result;
         }
 
         /// <summary>
@@ -192,29 +190,45 @@ namespace DumbQQ.Constants
         /// <returns></returns>
         internal static HttpResponse Post(this HttpClient client, ApiUrl url, JObject json, int timeout)
         {
-            object origin;
-            var hasOrigin = client.Request.RawHeaders.TryGetValue("Origin", out origin);
-            var time = client.Request.Timeout;
-
-            client.Request.Referer = url.Referer;
-            if (client.Request.RawHeaders.ContainsKey("Origin"))
-                client.Request.RawHeaders["Origin"] = url.Origin;
+            var hasOrigin = client.DefaultRequestHeaders.TryGetValues("Origin", out IEnumerable<string> origin);
+            var time = client.Timeout;
+            client.DefaultRequestHeaders.Referrer = new Uri(url.Referer);
+            //client.DefaultRequestHeaders.Add("Content-Type", "application/ x-www-form-urlencoded; charset=UTF-8");
+            if (client.DefaultRequestHeaders.Contains("Origin"))
+            {
+                client.DefaultRequestHeaders.Remove("Origin");
+                client.DefaultRequestHeaders.Add("Origin", url.Origin);
+            }
             else
-                client.Request.AddExtraHeader("Origin", url.Origin);
-            if (timeout > 0)
-                client.Request.Timeout = timeout;
-
-            var response = client.Post(url.Url, "r=" + HttpUtility.UrlEncode(json.ToString(Formatting.None)),
-                "application/x-www-form-urlencoded; charset=UTF-8");
-
+            {
+                client.DefaultRequestHeaders.Add("Origin", url.Origin);
+            }
+            //if (timeout > 0)
+            //{
+            //    client.Timeout = new TimeSpan(0,0,timeout);
+            //}
+            List<KeyValuePair<String, String>> paramList = new List<KeyValuePair<String, String>>
+            {
+                new KeyValuePair<string, string>("r", json.ToString(Formatting.None))
+            };
+            HttpContent hc = new FormUrlEncodedContent(paramList);
+            hc.Headers.ContentType = MediaTypeHeaderValue.Parse("application/ x-www-form-urlencoded; charset=UTF-8");
+            var response = client.PostAsync(url.Url, hc);
+            response.Wait();
             // 复原client
             if (hasOrigin)
-                client.Request.RawHeaders["Origin"] = origin;
+            {
+                client.DefaultRequestHeaders.Remove("Origin");
+                client.DefaultRequestHeaders.Add("Origin", origin);
+            }
             else
-                client.Request.RawHeaders.Remove("Origin");
-            client.Request.Timeout = time;
+            {
+                client.DefaultRequestHeaders.Remove("Origin");
+            }
 
-            return response;
+            //client.Timeout = time;
+
+            return response.Result;
         }
 
         /// <summary>

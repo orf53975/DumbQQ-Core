@@ -240,3 +240,6 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+/DumbQQCoreConsoleApp/qrcode.png
+/DumbQQCoreConsoleApp/dump.json
+/DumbQQCoreConsoleApp/dump.json

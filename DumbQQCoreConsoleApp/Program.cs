@@ -1,19 +1,24 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Reflection;
-using System.Text.RegularExpressions;
+using System.Text;
+using System.Threading.Tasks;
 using DumbQQ.Client;
+using HttpResponse = System.Net.Http.HttpResponseMessage;
 
-namespace DumbQQConsoleDemo
+
+namespace DumbQQCoreConsoleApp
 {
     public class Program
     {
-        private static readonly DumbQQClient Client = new DumbQQClient {CacheTimeout = TimeSpan.FromDays(1)};
+        private static readonly DumbQQClient Client = new DumbQQClient { CacheTimeout = TimeSpan.FromDays(1) };
         private const string CookiePath = "dump.json";
 
         public static void Main(string[] args)
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             // 好友消息回调
             Client.FriendMessageReceived += (sender, message) =>
             {
@@ -25,10 +30,6 @@ namespace DumbQQConsoleDemo
             {
                 var s = message.Sender;
                 Console.WriteLine($"[{message.Group.Name}]{s.Alias ?? s.Nickname}:{message.Content}");
-                if (message.Content.IsMatch(@"^\s*Knock knock\s*$"))
-                {
-                    message.Reply("Who's there?");
-                }
             };
             // 讨论组消息回调
             Client.DiscussionMessageReceived += (sender, message) =>
@@ -53,7 +54,7 @@ namespace DumbQQConsoleDemo
             {
                 QrLogin();
             }
-            Console.WriteLine($"欢迎，{Client.Nickname}!");
+            Console.WriteLine($"Login Success，{Client.Nickname}!");
             // 导出cookie
             try
             {
@@ -64,9 +65,7 @@ namespace DumbQQConsoleDemo
                 // Ignored
             }
             // 防止程序终止
-            while (Client.Status == DumbQQClient.ClientStatus.Active)
-            {
-            }
+            Console.ReadLine();
         }
 
         private static void QrLogin()
@@ -74,7 +73,7 @@ namespace DumbQQConsoleDemo
             while (true)
             {
                 // ReSharper disable once SwitchStatementMissingSomeCases
-                switch (Client.Start(path => Process.Start(path)))
+                switch (Client.Start(path => { }))
                 {
                     case DumbQQClient.LoginResult.Succeeded:
                         return;
@@ -83,7 +82,7 @@ namespace DumbQQConsoleDemo
                     default:
                         Console.WriteLine("登录失败，需要重试吗？(y/n)");
                         var response = Console.ReadLine();
-                        if (response.IsMatch(@"^\s*y(es)?\s*$", RegexOptions.IgnoreCase))
+                        if (response.Contains("y"))
                         {
                             continue;
                         }
