@@ -1,4 +1,4 @@
-# DumbQQ
+# CoreQQ
 
 [![Build status]( 	https://img.shields.io/appveyor/ci/TJYSunset/DumbQQ.svg?style=flat)](https://ci.appveyor.com/project/TJYSunset/DumbQQ)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://raw.githubusercontent.com/TJYSunset/DumbQQ/master/LICENSE)
