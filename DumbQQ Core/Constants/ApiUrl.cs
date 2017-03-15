@@ -155,18 +155,16 @@ namespace DumbQQ.Constants
         public static HttpResponse Get(this HttpClient client, ApiUrl url, params object[] args)
         {
             var referer = client.DefaultRequestHeaders.Referrer;
-            //var autoRedirect = client.DefaultRequestHeaders.AllowAutoRedirect;
+
             if (url.Referer != null)
             {
                 client.DefaultRequestHeaders.Referrer = new Uri(url.Referer);
             }
-            //if (allowAutoRedirect.HasValue)
-            //    client.Request.AllowAutoRedirect = allowAutoRedirect.Value;
+
             var response = client.GetAsync(url.BuildUrl(args));
             response.Wait();
             // 复原client
             client.DefaultRequestHeaders.Referrer = referer;
-            //client.Request.AllowAutoRedirect = autoRedirect;
 
             return response.Result;
         }
@@ -178,22 +176,14 @@ namespace DumbQQ.Constants
         /// <param name="url">URL。</param>
         /// <param name="json">JSON。</param>
         /// <returns></returns>
-        public static HttpResponse Post(this HttpClient client, ApiUrl url, JObject json) => client.Post(url, json, -1);
-
-        /// <summary>
-        ///     发送POST请求。
-        /// </summary>
-        /// <param name="client"></param>
-        /// <param name="url">URL。</param>
-        /// <param name="json">JSON。</param>
-        /// <param name="timeout">超时。</param>
-        /// <returns></returns>
-        internal static HttpResponse Post(this HttpClient client, ApiUrl url, JObject json, int timeout)
+        internal static HttpResponse Post(this HttpClient client, ApiUrl url, JObject json)
         {
             var hasOrigin = client.DefaultRequestHeaders.TryGetValues("Origin", out IEnumerable<string> origin);
-            var time = client.Timeout;
-            client.DefaultRequestHeaders.Referrer = new Uri(url.Referer);
-            //client.DefaultRequestHeaders.Add("Content-Type", "application/ x-www-form-urlencoded; charset=UTF-8");
+
+            if (url.Referer != null)
+            {
+                client.DefaultRequestHeaders.Referrer = new Uri(url.Referer);
+            }
             if (client.DefaultRequestHeaders.Contains("Origin"))
             {
                 client.DefaultRequestHeaders.Remove("Origin");
@@ -203,10 +193,7 @@ namespace DumbQQ.Constants
             {
                 client.DefaultRequestHeaders.Add("Origin", url.Origin);
             }
-            //if (timeout > 0)
-            //{
-            //    client.Timeout = new TimeSpan(0,0,timeout);
-            //}
+
             List<KeyValuePair<String, String>> paramList = new List<KeyValuePair<String, String>>
             {
                 new KeyValuePair<string, string>("r", json.ToString(Formatting.None))
@@ -225,8 +212,6 @@ namespace DumbQQ.Constants
             {
                 client.DefaultRequestHeaders.Remove("Origin");
             }
-
-            //client.Timeout = time;
 
             return response.Result;
         }

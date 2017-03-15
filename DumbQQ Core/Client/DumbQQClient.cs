@@ -6,18 +6,14 @@ using System.Net.Http;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-//using System.Web;
 using DumbQQ.Constants;
 using DumbQQ.Models;
 using DumbQQ.Utils;
-//using EasyHttp.Http;
-//using EasyHttp.Infrastructure;
 using log4net;
 using log4net.Config;
 using log4net.Repository;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-//using HttpClient = EasyHttp.Http.HttpClient;
 
 namespace DumbQQ.Client
 {
@@ -92,17 +88,18 @@ namespace DumbQQ.Client
         }
 
         internal const long ClientId = 53999199;
-        internal static readonly ILoggerRepository repository = LogManager.CreateRepository("DumbQQCore");
-        internal static readonly ILog Logger = LogManager.GetLogger(repository.Name, "DumbQQCoreLog");
+        internal static readonly ILoggerRepository Repository = LogManager.CreateRepository("DumbQQCore");
+        internal static readonly ILog Logger = LogManager.GetLogger(Repository.Name, "DumbQQCoreLog");
         private static long _messageId = 43690001;
 
         // 数据缓存
         private readonly CacheDepot _cache;
         private readonly Cache<FriendInfo> _myInfoCache;
         private readonly CacheDictionary<long, long> _qqNumberCache;
-        public static HttpClientHandler handler = new HttpClientHandler();
-        public static CookieContainer cookies = new CookieContainer();
-        internal readonly HttpClient Client = new HttpClient(handler);
+        internal static HttpClientHandler Handler = new HttpClientHandler();
+        public static CookieContainer Cookies = new CookieContainer();
+        internal readonly HttpClient Client = new HttpClient(Handler);
+        private TimeSpan _cacheTimeout = TimeSpan.FromHours(2);
 
         // 线程开关
         private volatile bool _pollStarted;
@@ -122,15 +119,12 @@ namespace DumbQQ.Client
         /// </summary>
         public DumbQQClient()
         {
-            BasicConfigurator.Configure(repository);
-            handler.UseCookies = true;
-            handler.CookieContainer = cookies;
+            BasicConfigurator.Configure(Repository);
+            Handler.UseCookies = true;
+            Handler.CookieContainer = Cookies;
+            Handler.AllowAutoRedirect = true;
             Client.DefaultRequestHeaders.Add("User-Agent", ApiUrl.UserAgent);
             Client.DefaultRequestHeaders.Add("KeepAlive", "true");
-            //Client.Request.PersistCookies = true;
-            //Client.DefaultRequestHeaders.KeepAlive = true;
-            //Client.DefaultRequestHeaders.Accept = null;
-            //Client.ThrowExceptionOnHttpError = false;
             _cache = new CacheDepot(CacheTimeout);
             _myInfoCache = new Cache<FriendInfo>(CacheTimeout);
             _qqNumberCache = new CacheDictionary<long, long>(CacheTimeout);
@@ -149,7 +143,17 @@ namespace DumbQQ.Client
         /// <summary>
         ///     缓存的超时时间。
         /// </summary>
-        public TimeSpan CacheTimeout { get; set; } = TimeSpan.FromHours(2);
+        public TimeSpan CacheTimeout
+        {
+            get { return _cacheTimeout; }
+            set
+            {
+                _cacheTimeout = value;
+                _cache.Timeout = value;
+                _myInfoCache.Timeout = value;
+                _qqNumberCache.Timeout = value;
+            }
+        }
 
         /// <summary>
         ///     发送消息的重试次数。
@@ -466,7 +470,7 @@ namespace DumbQQ.Client
                 {"vfwebqq", Vfwebqq},
                 {
                     "cookies",
-                    JArray.FromObject((cookies.GetAllCookies()))
+                    JArray.FromObject((Cookies.GetAllCookies()))
                 }
             }.ToString(Formatting.None);
         }
@@ -489,15 +493,13 @@ namespace DumbQQ.Client
                 Ptwebqq = dump["ptwebqq"].Value<string>();
                 Uin = dump["uin"].Value<long>();
                 Vfwebqq = dump["vfwebqq"].Value<string>();
-
-                //var cookies = new CookieContainer();
-                var test = dump["cookies"].Value<JArray>().ToObject<List<Cookie>>();
+                
                 foreach (var cookie in dump["cookies"].Value<JArray>().ToObject<List<Cookie>>())
                 {
-                    cookies.Add(new Uri("http://"+cookie.Domain), cookie);
+                    Cookies.Add(new Uri("http://"+cookie.Domain), cookie);
                 }
-                //cookies.SetValue(Client.DefaultRequestHeaders, cookies);
-                handler.CookieContainer = cookies;
+
+                Handler.CookieContainer = Cookies;
                 if (TestLogin())
                 {
                     Status = ClientStatus.Active;
@@ -518,7 +520,8 @@ namespace DumbQQ.Client
         /// <summary>
         ///     连接到SmartQQ。
         /// </summary>
-        public LoginResult Start(Action<string> qrCodeDownloadedCallback)
+        /// <param name="qrCodeDownloadedCallback">二维码已下载时的回调函数。回调函数的参数为二维码图像的字节数组。</param>
+        public LoginResult Start(Action<byte[]> qrCodeDownloadedCallback)
         {
             if (Status != ClientStatus.Idle)
                 throw new InvalidOperationException("已在登录或者已经登录，不能重复进行登录操作");
@@ -533,8 +536,20 @@ namespace DumbQQ.Client
             return result;
         }
 
+        /// <summary>
+        ///     连接到SmartQQ。
+        /// </summary>
+        /// <param name="qrCodeDownloadedCallback">二维码已下载时的回调函数。回调函数的参数为已下载的二维码的绝对路径。</param>
+        //[Obsolete("此方法已不赞成使用，并可能在未来版本中移除。请考虑改为使用Start(Action<byte[]>)。")]
+        //public LoginResult Start(Action<string> qrCodeDownloadedCallback) => Start(_ =>
+        //{
+        //    var filePath = Path.GetFullPath("qrcode.png");
+        //    File.WriteAllBytes(filePath, _);
+        //    qrCodeDownloadedCallback(filePath);
+        //});
+
         // 登录
-        private LoginResult Login(Action<string> qrCodeDownloadedCallback)
+        private LoginResult Login(Action<byte[]> qrCodeDownloadedCallback)
         {
             try
             {
@@ -545,7 +560,9 @@ namespace DumbQQ.Client
                 GetVfwebqq();
                 GetUinAndPsessionid();
                 if (!TestLogin())
+#pragma warning disable 612
                     ExtraLoginNeeded?.Invoke(this, @"http://w.qq.com");
+#pragma warning restore 612
                 Hash = StringHelper.SomewhatHash(Uin, Ptwebqq);
                 return LoginResult.Succeeded;
             }
@@ -561,23 +578,24 @@ namespace DumbQQ.Client
         }
 
         // 获取二维码
-        private async void GetQrCode(Action<string> qrCodeDownloadedCallback)
+        private async void GetQrCode(Action<byte[]> qrCodeDownloadedCallback)
         {
             Logger.Debug("开始获取二维码");
-            var filePath = Path.GetFullPath("qrcode.png");
-            FileStream fs = new FileStream(filePath, FileMode.Create);
+            //var filePath = Path.GetFullPath("qrcode.png");
+            //FileStream fs = new FileStream(filePath, FileMode.Create);
             var response = await Client.GetAsync(ApiUrl.GetQrCode.Url);
             byte[] bytes = await response.Content.ReadAsByteArrayAsync();
-            fs.Write(bytes, 0, bytes.Length);
-            fs.Dispose();
-            foreach (Cookie cookie in handler.CookieContainer.GetCookies(new Uri(ApiUrl.GetQrCode.Url)))
+            //fs.Write(bytes, 0, bytes.Length);
+            //fs.Flush();
+            //fs.Dispose();
+            foreach (Cookie cookie in Handler.CookieContainer.GetCookies(new Uri(ApiUrl.GetQrCode.Url)))
             {
                 if (cookie.Name != "qrsig") continue;
                 _qrsig = cookie.Value;
                 break;
             }
-            Logger.Info("二维码已保存在 " + filePath + " 文件中，请打开手机QQ并扫描二维码");
-            qrCodeDownloadedCallback.Invoke(filePath);
+            Logger.Info("二维码已获取");
+            qrCodeDownloadedCallback.Invoke(bytes);
         }
 
         private static int Hash33(string s)
@@ -601,7 +619,7 @@ namespace DumbQQ.Client
                 var result = response.Content.ReadAsStringAsync().Result;
                 if (result.Contains("成功"))
                 {
-                    var cookie = cookies.GetCookies(new Uri(ApiUrl.VerifyQrCode.Url))["ptwebqq"];
+                    var cookie = Cookies.GetCookies(new Uri(ApiUrl.VerifyQrCode.Url))["ptwebqq"];
                     if (cookie != null) Ptwebqq = cookie.Value;
                     else throw new InvalidOperationException();
                     foreach (var content in result.Split(new[] { "','" }, StringSplitOptions.None))
@@ -708,7 +726,7 @@ namespace DumbQQ.Client
                 {"key", ""}
             };
 
-            var response = Client.Post(ApiUrl.PollMessage, r, 120000);
+            var response = Client.Post(ApiUrl.PollMessage, r);
             var array = GetResponseJson(response)["result"] as JArray;
             for (var i = 0; array != null && i < array.Count; i++)
             {
@@ -828,9 +846,8 @@ namespace DumbQQ.Client
         }
     }
 
-    public abstract class Cache
+    internal abstract class Cache
     {
-        protected readonly TimeSpan Timeout;
         protected readonly Timer Timer;
         protected bool IsValid;
 
@@ -843,6 +860,8 @@ namespace DumbQQ.Client
             Timeout = timeout;
             Timer = new Timer(_ => Clear(), null, Timeout, System.Threading.Timeout.InfiniteTimeSpan);
         }
+
+        public TimeSpan Timeout { get; set; }
 
         protected object Value { get; set; }
 
@@ -918,21 +937,25 @@ namespace DumbQQ.Client
     internal class CacheDepot
     {
         private readonly Dictionary<string, Cache> _dic = new Dictionary<string, Cache>();
-        private readonly TimeSpan _timeout;
 
         public CacheDepot(TimeSpan timeout)
         {
-            _timeout = timeout;
+            Timeout = timeout;
         }
+
+        public TimeSpan Timeout { get; set; }
 
         public Cache GetCache<T>() where T : class
         {
             if (!_dic.ContainsKey(typeof(T).FullName))
-                _dic.Add(typeof(T).FullName, new Cache<T>(_timeout));
+                _dic.Add(typeof(T).FullName, new Cache<T>(Timeout));
             return _dic[typeof(T).FullName];
         }
 
-        public void Clear() => _dic.Clear();
+        public void Clear()
+        {
+            _dic.Clear();
+        }
     }
 
     /// <summary>
@@ -945,9 +968,22 @@ namespace DumbQQ.Client
         // ReSharper disable once NotAccessedField.Local
         private readonly Timer _timer;
 
+        private TimeSpan _timeout;
+
         public CacheDictionary(TimeSpan timeout)
         {
+            _timeout = timeout;
             _timer = new Timer(_ => Clear(), null, timeout, timeout);
+        }
+
+        public TimeSpan Timeout
+        {
+            get { return _timeout; }
+            set
+            {
+                _timeout = value;
+                _timer.Change(value, value);
+            }
         }
     }
 
@@ -965,7 +1001,12 @@ namespace DumbQQ.Client
             ErrorCode = errorCode;
         }
 
+        /// <summary>
+        ///     返回的错误码。
+        /// </summary>
         public int ErrorCode { get; }
+
+        /// <inheritdoc />
         public override string Message => "API错误，返回码" + ErrorCode;
     }
 }
