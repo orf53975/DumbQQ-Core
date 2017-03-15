@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <Description>This is a .Net Core compatible version</Description>
+    <PackageReleaseNotes>This is a .Net Core compatible version</PackageReleaseNotes>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="log4net">
+	<Version>2.0.8</Version>
+	</PackageReference>
+    <PackageReference Include="Newtonsoft.Json">	
+	<Version>9.0.1</Version>
+	</PackageReference>
+  </ItemGroup>
+
+</Project>

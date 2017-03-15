@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.4
+VisualStudioVersion = 15.0.26228.9
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DumbQQ Core", "DumbQQ Core\DumbQQ Core.csproj", "{8A1B61C1-BFD5-4190-BC4D-0F57117C065A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DumbQQCore", "DumbQQ Core\DumbQQCore.csproj", "{8A1B61C1-BFD5-4190-BC4D-0F57117C065A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DumbQQCoreConsoleApp", "DumbQQCoreConsoleApp\DumbQQCoreConsoleApp.csproj", "{F00D4EB3-90A0-4690-8578-D8D1179319D9}"
 EndProject

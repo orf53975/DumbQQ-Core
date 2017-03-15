@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DumbQQ Core\DumbQQ Core.csproj" />
+    <ProjectReference Include="..\DumbQQ Core\DumbQQCore.csproj" />
   </ItemGroup>
 
 </Project>

@@ -188,6 +188,11 @@ namespace DumbQQ.Client
         public long Id => MyInfo.Id;
 
         /// <summary>
+        ///     已登录账户的QQ号。
+        /// </summary>
+        public long QQNumber => GetQQNumberOf(Id);
+
+        /// <summary>
         ///     已登录账户的昵称。
         /// </summary>
         public string Nickname => MyInfo.Nickname;
@@ -345,7 +350,7 @@ namespace DumbQQ.Client
         /// </summary>
         /// <param name="userId">用户ID。</param>
         /// <returns>QQ号。</returns>
-        public async Task<long> GetQQNumberOf(long userId)
+        public long GetQQNumberOf(long userId)
         {
             if (Status != ClientStatus.Active)
                 throw new InvalidOperationException("尚未登录，无法进行该操作");
@@ -356,10 +361,10 @@ namespace DumbQQ.Client
                 Logger.Debug("加载了缓存的QQ号");
                 return _qqNumberCache[userId];
             }
-
             var qq =
             ((JObject)
-                JObject.Parse(await Client.Get(ApiUrl.GetQQById, userId, Vfwebqq, RandomHelper.GetRandomDouble()).Content.ReadAsStringAsync())[
+                JObject.Parse(Client.Get(ApiUrl.GetQQById, userId, Vfwebqq, RandomHelper.GetRandomDouble())
+                    .Content.ReadAsStringAsync().Result)[
                     "result"])["account"].Value<long>();
             _qqNumberCache.Put(userId, qq);
             return qq;
