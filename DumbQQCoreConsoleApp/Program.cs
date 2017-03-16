@@ -57,18 +57,9 @@ namespace DumbQQCoreConsoleApp
             }
             Console.WriteLine($"Login Success，{Client.Nickname}!");
             // 导出cookie
-            try
-            {
-                File.WriteAllText(CookiePath, Client.DumpCookies());
-            }
-            catch
-            {
-                // Ignored
-            }
+            File.WriteAllText(CookiePath, Client.DumpCookies());
             // 防止程序终止
-            while (Client.Status == DumbQQClient.ClientStatus.Active)
-            {
-            }
+            Console.ReadLine();
         }
 
         private static void QrLogin()
@@ -80,8 +71,11 @@ namespace DumbQQCoreConsoleApp
                     using (MemoryStream ms = new MemoryStream(array))
                     {
                         Bitmap bmp = new Bitmap(Image.FromStream(ms));
+                        Console.BackgroundColor = ConsoleColor.White;
+                        Console.ForegroundColor = ConsoleColor.Black;
                         Console.WriteLine(QrChar(bmp, 5, 5));
-                        Console.WriteLine("二维码已打印在屏幕，请反选二维码区域在使用手机扫描。");
+                        Console.ResetColor();
+                        Console.WriteLine("二维码已打印在屏幕，请使用手机QQ扫描。");
                     }
                 }))
                 {
@@ -151,5 +145,6 @@ namespace DumbQQCoreConsoleApp
             }
             return stringBuilder.ToString();
         }
+
     }
 }
