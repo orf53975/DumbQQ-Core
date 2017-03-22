@@ -2,9 +2,18 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp1.1</TargetFramework>
-    <Description>This is a .Net Core compatible version</Description>
-    <PackageReleaseNotes>This is a .Net Core compatible version</PackageReleaseNotes>
+    <Description>This is a .Net Core compatible version DumbQQ</Description>
+    <PackageReleaseNotes>This is a .Net Core compatible version DumbQQ</PackageReleaseNotes>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.0.1</Version>
+    <Authors>TJYSunset/RMBGAME</Authors>
+    <Company />
+    <PackageIconUrl>https://raw.githubusercontent.com/TJYSunset/DumbQQ/master/NugetIcon.png</PackageIconUrl>
+    <Copyright>DumbQQ</Copyright>
+    <PackageProjectUrl>https://github.com/rmbadmin/DumbQQ-Core</PackageProjectUrl>
+    <PackageTags>WEBQQ,SmartQQ,QQ,ChatQQ</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

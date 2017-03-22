@@ -313,7 +313,7 @@ namespace DumbQQ.Client
                 throw new InvalidOperationException("尚未登录，无法进行该操作");
             if (_cache.GetCache<List<T>>().TryGetValue(out List<T> tempData))
             {
-                Logger.Debug("加载了缓存的" + typeof(T).Name + "列表");
+                //Logger.Debug("加载了缓存的" + typeof(T).Name + "列表");
                 return tempData;
             }
             // 为了性能所以不使用reflection而采用硬编码
@@ -721,7 +721,7 @@ namespace DumbQQ.Client
         // 拉取消息
         private void PollMessage()
         {
-            Logger.Debug(DateTime.Now + " 开始接收消息");
+           // Logger.Debug(DateTime.Now + " 开始接收消息");
 
             var r = new JObject
             {

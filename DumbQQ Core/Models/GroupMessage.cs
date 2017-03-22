@@ -10,6 +10,14 @@ namespace DumbQQ.Models
     /// </summary>
     public class GroupMessage : IMessage
     {
+        [JsonIgnore] private readonly LazyHelper<Group> _group = new LazyHelper<Group>();
+
+        [JsonIgnore] private readonly LazyHelper<bool> _mentionedMe = new LazyHelper<bool>();
+
+        [JsonIgnore] private readonly LazyHelper<GroupMember> _sender = new LazyHelper<GroupMember>();
+
+        [JsonIgnore] private readonly LazyHelper<bool> _strictlyMentionedMe = new LazyHelper<bool>();
+
         [JsonIgnore] internal DumbQQClient Client;
 
         /// <summary>
@@ -22,7 +30,7 @@ namespace DumbQQ.Models
         ///     消息来源群。
         /// </summary>
         [JsonIgnore]
-        public Group Group => Client.Groups.Find(_ => _.Id == GroupId);
+        public Group Group => _group.GetValue(() => Client.Groups.Find(_ => _.Id == GroupId));
 
         /// <summary>
         ///     字体。
@@ -55,7 +63,26 @@ namespace DumbQQ.Models
         ///     发送者。
         /// </summary>
         [JsonIgnore]
-        public GroupMember Sender => Group.Members.Find(_ => _.Id == SenderId);
+        public GroupMember Sender => _sender.GetValue(() => Group.Members.Find(_ => _.Id == SenderId));
+
+        /// <summary>
+        ///     指示本账户是否被提到。
+        /// </summary>
+        [JsonIgnore]
+        public bool MentionedMe => _mentionedMe.GetValue(() =>
+            Group.MyAlias != null && Content.Contains(Group.MyAlias) ||
+            Client.Nickname != null && Content.Contains(Client.Nickname));
+
+        /// <summary>
+        ///     指示本账户是否被@。
+        /// </summary>
+        /// <remarks>
+        ///     此属性无法区分真正的@与内容相同的纯文本。
+        /// </remarks>
+        [JsonIgnore]
+        public bool StrictlyMentionedMe => _strictlyMentionedMe.GetValue(() =>
+            (Group.MyAlias != null || Client.Nickname != null) &&
+            Content.Contains("@" + (Group.MyAlias ?? Client.Nickname)));
 
         [JsonIgnore]
         User IMessage.Sender => Sender;
@@ -80,5 +107,9 @@ namespace DumbQQ.Models
         {
             Client.Message(DumbQQClient.TargetType.Group, GroupId, content);
         }
+
+        /// <inheritdoc />
+        IMessageable IMessage.RepliableTarget => Group;
+
     }
 }

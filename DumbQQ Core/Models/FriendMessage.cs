@@ -42,8 +42,11 @@ namespace DumbQQ.Models
         /// <summary>
         ///     发送者。
         /// </summary>
+        /// <inheritdoc />
         [JsonIgnore]
-        public Friend Sender => Client.Friends.Find(_ => _.Id == SenderId);
+        public Friend Sender => _sender.GetValue(() => Client.Friends.Find(_ => _.Id == SenderId));
+
+        [JsonIgnore] private readonly LazyHelper<Friend> _sender = new LazyHelper<Friend>();
 
         [JsonIgnore]
         User IMessage.Sender => Sender;
@@ -68,5 +71,8 @@ namespace DumbQQ.Models
         {
             Client.Message(DumbQQClient.TargetType.Friend, SenderId, content);
         }
+
+        /// <inheritdoc />
+        IMessageable IMessage.RepliableTarget => Sender;
     }
 }

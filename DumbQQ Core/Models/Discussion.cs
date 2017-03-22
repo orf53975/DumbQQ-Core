@@ -12,21 +12,19 @@ namespace DumbQQ.Models
     /// </summary>
     public class Discussion : IListable, IMessageable
     {
-        [JsonIgnore] private DiscussionInfo _info;
+        [JsonIgnore] private readonly LazyHelper<DiscussionInfo> _info = new LazyHelper<DiscussionInfo>();
 
         [JsonIgnore] internal DumbQQClient Client;
 
         [JsonIgnore]
         private DiscussionInfo Info
-        {
-            get
+            => _info.GetValue(() =>
             {
-                if (_info != null) return _info;
                 DumbQQClient.Logger.Debug("开始获取讨论组信息");
 
                 var response = Client.Client.Get(ApiUrl.GetDiscussionInfo, Id, Client.Vfwebqq, Client.Psessionid);
                 var result = (JObject) Client.GetResponseJson(response)["result"];
-                _info = result["info"].ToObject<DiscussionInfo>();
+                var info = result["info"].ToObject<DiscussionInfo>();
                 // 获得讨论组成员信息
                 var members = new Dictionary<long, DiscussionMember>();
                 var minfo = (JArray) result["mem_info"];
@@ -34,7 +32,7 @@ namespace DumbQQ.Models
                 {
                     var member = minfo[i].ToObject<DiscussionMember>();
                     members.Add(member.Id, member);
-                    _info.Members.Add(member);
+                    info.Members.Add(member);
                 }
                 var stats = (JArray) result["mem_status"];
                 for (var i = 0; stats != null && i < stats.Count; i++)
@@ -44,10 +42,10 @@ namespace DumbQQ.Models
                     member.ClientType = item["client_type"].Value<int>();
                     member.Status = item["status"].Value<string>();
                 }
-                _info.Members.ForEach(_ => _.Client = Client);
-                return _info;
-            }
-        }
+                info.Members.ForEach(_ => _.Client = Client);
+                return info;
+
+            });
 
         /// <summary>
         ///     成员。
