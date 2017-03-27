@@ -1,13 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp1.1</TargetFramework>
-    <Description>This is a .Net Core compatible version DumbQQ</Description>
-    <PackageReleaseNotes>This is a .Net Core compatible version DumbQQ</PackageReleaseNotes>
+    <TargetFramework>netstandard1.3</TargetFramework>
+    <Description>This is a .Net Standard compatible version DumbQQ 
+Can use to UWP and .NET Core</Description>
+    <PackageReleaseNotes>This is a .Net Standard compatible version DumbQQ</PackageReleaseNotes>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <Authors>TJYSunset/RMBGAME</Authors>
     <Company />
     <PackageIconUrl>https://raw.githubusercontent.com/TJYSunset/DumbQQ/master/NugetIcon.png</PackageIconUrl>
@@ -21,7 +22,7 @@
 	<Version>2.0.8</Version>
 	</PackageReference>
     <PackageReference Include="Newtonsoft.Json">	
-	<Version>9.0.1</Version>
+	<Version>10.0.1</Version>
 	</PackageReference>
   </ItemGroup>
 

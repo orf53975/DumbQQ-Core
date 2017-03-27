@@ -380,7 +380,7 @@ namespace DumbQQ.Client
         {
             if (Status != ClientStatus.Active)
                 throw new InvalidOperationException("尚未登录，无法进行该操作");
-            Logger.Debug("开始发送消息，对象类型：" + type);
+            //Logger.Debug("开始发送消息，对象类型：" + type);
 
             string paramName;
             ApiUrl url;
@@ -427,7 +427,7 @@ namespace DumbQQ.Client
             var status = JObject.Parse(await response.Content.ReadAsStringAsync())["retcode"].ToObject<int?>();
             if (status != null && (status == 0 || status == 100100))
             {
-                Logger.Debug("消息发送成功");
+                //Logger.Debug("消息发送成功");
                 if (MessageEcho == null) return;
                 MessageEchoEventArgs args;
                 switch (type)

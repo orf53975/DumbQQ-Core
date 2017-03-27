@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 using DumbQQ.Client;
 //using System.Web;
@@ -194,14 +195,17 @@ namespace DumbQQ.Constants
                 client.DefaultRequestHeaders.Add("Origin", url.Origin);
             }
 
-            List<KeyValuePair<String, String>> paramList = new List<KeyValuePair<String, String>>
-            {
-                new KeyValuePair<string, string>("r", json.ToString(Formatting.None))
-            };
-            HttpContent hc = new FormUrlEncodedContent(paramList);
+            //List<KeyValuePair<String, String>> paramList = new List<KeyValuePair<String, String>>
+            //{
+            //    new KeyValuePair<string, string>("r", json.ToString(Formatting.None))
+            //};
+            //HttpContent hc = new FormUrlEncodedContent(paramList);
+
+            HttpContent hc = new StringContent($"r={WebUtility.UrlEncode(json.ToString(Formatting.None))}", Encoding.UTF8);
             hc.Headers.ContentType = MediaTypeHeaderValue.Parse("application/ x-www-form-urlencoded; charset=UTF-8");
             var response = client.PostAsync(url.Url, hc);
             response.Wait();
+
             // 复原client
             if (hasOrigin)
             {
