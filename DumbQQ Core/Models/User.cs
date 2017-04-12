@@ -21,6 +21,7 @@ namespace DumbQQ.Models
         public abstract long QQNumber { get; }
 
         public static bool operator ==(User left, User right) => left?.Id == right?.Id;
+
         public static bool operator !=(User left, User right) => !(left == right);
 
         protected bool Equals(User other)

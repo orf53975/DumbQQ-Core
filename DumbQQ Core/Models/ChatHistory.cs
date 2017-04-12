@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
-using DumbQQ.Client;
+﻿using DumbQQ.Client;
 using DumbQQ.Constants;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
 namespace DumbQQ.Models
 {
@@ -45,9 +45,9 @@ namespace DumbQQ.Models
         {
             DumbQQClient.Logger.Debug("开始获取最近聊天记录列表");
             var response = client.Client.Post(ApiUrl.GetChatHistoryList,
-                new JObject {{"vfwebqq", client.Vfwebqq}, {"clientid", DumbQQClient.ClientId}, {"psessionid", ""}});
+                new JObject { { "vfwebqq", client.Vfwebqq }, { "clientid", DumbQQClient.ClientId }, { "psessionid", "" } });
             return
-                ((JArray) client.GetResponseJson(response)["result"])
+                ((JArray)client.GetResponseJson(response)["result"])
                 .ToObject<List<ChatHistory>>();
         }
     }

@@ -1,10 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using DumbQQ.Client;
+﻿using DumbQQ.Client;
 using DumbQQ.Constants;
 using DumbQQ.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace DumbQQ.Models
 {
@@ -182,7 +182,7 @@ namespace DumbQQ.Models
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((Friend) obj);
+            return obj.GetType() == GetType() && Equals((Friend)obj);
         }
 
         public override int GetHashCode() => Id.GetHashCode();
@@ -191,14 +191,14 @@ namespace DumbQQ.Models
         {
             DumbQQClient.Logger.Debug("开始获取好友列表");
             var response = client.Client.Post(ApiUrl.GetFriendList,
-                new JObject {{"vfwebqq", client.Vfwebqq}, {"hash", client.Hash}});
-            var result = (JObject) client.GetResponseJson(response)["result"];
+                new JObject { { "vfwebqq", client.Vfwebqq }, { "hash", client.Hash } });
+            var result = (JObject)client.GetResponseJson(response)["result"];
             //获得好友信息
             var friendDictionary = DumbQQClient.ParseFriendDictionary(result);
             var friends = result["friends"] as JArray;
             for (var i = 0; friends != null && i < friends.Count; i++)
             {
-                var item = (JObject) friends[i];
+                var item = (JObject)friends[i];
                 friendDictionary[item["uin"].Value<long>()].CategoryIndex = item["categories"].Value<int>();
             }
             var value = friendDictionary.Select(_ => _.Value).ToList();

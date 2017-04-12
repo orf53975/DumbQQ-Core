@@ -41,7 +41,7 @@ namespace DumbQQ.Models
         {
             set
             {
-                Font = ((JArray) value.First).Last.ToObject<Font>();
+                Font = ((JArray)value.First).Last.ToObject<Font>();
                 value.RemoveAt(0);
                 foreach (var shit in value)
                     Content += StringHelper.ParseEmoticons(shit);
@@ -80,7 +80,6 @@ namespace DumbQQ.Models
         {
             Client.Message(DumbQQClient.TargetType.Discussion, DiscussionId, content);
         }
-
 
         /// <inheritdoc />
         IMessageable IMessage.RepliableTarget => Discussion;

@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using DumbQQ.Constants;
+﻿using DumbQQ.Constants;
 using DumbQQ.Models;
 using DumbQQ.Utils;
 using log4net;
@@ -14,6 +6,11 @@ using log4net.Config;
 using log4net.Repository;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
 
 namespace DumbQQ.Client
 {
@@ -94,6 +91,7 @@ namespace DumbQQ.Client
 
         // 数据缓存
         private readonly CacheDepot _cache;
+
         private readonly Cache<FriendInfo> _myInfoCache;
         private readonly CacheDictionary<long, long> _qqNumberCache;
         internal static HttpClientHandler Handler = new HttpClientHandler();
@@ -106,11 +104,13 @@ namespace DumbQQ.Client
 
         // 二维码验证参数
         private string _qrsig;
+
         internal string Hash;
         internal string Psessionid;
 
         // 鉴权参数
         internal string Ptwebqq;
+
         internal long Uin;
         internal string Vfwebqq;
 
@@ -323,21 +323,27 @@ namespace DumbQQ.Client
                 case "ChatHistory":
                     result = (List<T>)(object)ChatHistory.GetList(this);
                     break;
+
                 case "Discussion":
                     result = (List<T>)(object)Discussion.GetList(this);
                     break;
+
                 case "Friend":
                     result = (List<T>)(object)Friend.GetList(this);
                     break;
+
                 case "FriendCategory":
                     result = (List<T>)(object)FriendCategory.GetList(this);
                     break;
+
                 case "FriendStatus":
                     result = (List<T>)(object)FriendStatus.GetList(this);
                     break;
+
                 case "Group":
                     result = (List<T>)(object)Group.GetList(this);
                     break;
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -391,19 +397,22 @@ namespace DumbQQ.Client
                     paramName = "to";
                     url = ApiUrl.SendMessageToFriend;
                     break;
+
                 case TargetType.Group:
                     paramName = "group_uin";
                     url = ApiUrl.SendMessageToGroup;
                     break;
+
                 case TargetType.Discussion:
                     paramName = "did";
                     url = ApiUrl.SendMessageToDiscussion;
                     break;
+
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
 
-            var response =  Client.PostWithRetry(url, new JObject
+            var response = Client.PostWithRetry(url, new JObject
             {
                 {paramName, id},
                 {
@@ -498,10 +507,10 @@ namespace DumbQQ.Client
                 Ptwebqq = dump["ptwebqq"].Value<string>();
                 Uin = dump["uin"].Value<long>();
                 Vfwebqq = dump["vfwebqq"].Value<string>();
-                
+
                 foreach (var cookie in dump["cookies"].Value<JArray>().ToObject<List<Cookie>>())
                 {
-                    Cookies.Add(new Uri("http://"+cookie.Domain), cookie);
+                    Cookies.Add(new Uri("http://" + cookie.Domain), cookie);
                 }
 
                 Handler.CookieContainer = Cookies;
@@ -707,7 +716,7 @@ namespace DumbQQ.Client
                     {
                         //if (!(ex is HttpRequestException) || !(ex.InnerException is HttpException) ||
                         //    (ex.InnerException).Message != HttpStatusCode.GatewayTimeout.ToString())
-                            Logger.Error(ex);
+                        Logger.Error(ex);
                         // 自动掉线
                         if (TestLogin()) continue;
                         Close();
@@ -721,7 +730,7 @@ namespace DumbQQ.Client
         // 拉取消息
         private void PollMessage()
         {
-           // Logger.Debug(DateTime.Now + " 开始接收消息");
+            // Logger.Debug(DateTime.Now + " 开始接收消息");
 
             var r = new JObject
             {
@@ -744,16 +753,19 @@ namespace DumbQQ.Client
                         fmsg.Client = this;
                         FriendMessageReceived?.Invoke(this, fmsg);
                         break;
+
                     case "group_message":
                         var gmsg = message["value"].ToObject<GroupMessage>();
                         gmsg.Client = this;
                         GroupMessageReceived?.Invoke(this, gmsg);
                         break;
+
                     case "discu_message":
                         var dmsg = message["value"].ToObject<DiscussionMessage>();
                         dmsg.Client = this;
                         DiscussionMessageReceived?.Invoke(this, dmsg);
                         break;
+
                     default:
                         Logger.Warn("意外的消息类型：" + type);
                         break;
@@ -786,11 +798,13 @@ namespace DumbQQ.Client
             {
                 case 0:
                     return json;
+
                 case null:
                     throw new HttpRequestException("请求失败，API未返回状态码");
                 case 103:
                     Logger.Error("请求失败，API返回码103；可能需要进一步登录。");
                     break;
+
                 default:
                     throw new HttpRequestException("请求失败，API返回码" + retCode, new ApiException((int)retCode));
             }

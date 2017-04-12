@@ -25,7 +25,6 @@
         /// </summary>
         IMessageable RepliableTarget { get; }
 
-
         /// <summary>
         ///     回复该消息。
         /// </summary>

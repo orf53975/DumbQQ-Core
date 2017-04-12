@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using DumbQQ.Client;
+﻿using DumbQQ.Client;
 using DumbQQ.Constants;
 using DumbQQ.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace DumbQQ.Models
 {
@@ -59,11 +58,11 @@ namespace DumbQQ.Models
         {
             DumbQQClient.Logger.Debug("开始获取好友列表");
             var response = client.Client.Post(ApiUrl.GetFriendList,
-                new JObject {{"vfwebqq", client.Vfwebqq}, {"hash", client.Hash}});
-            var result = (JObject) client.GetResponseJson(response)["result"];
+                new JObject { { "vfwebqq", client.Vfwebqq }, { "hash", client.Hash } });
+            var result = (JObject)client.GetResponseJson(response)["result"];
             //获得分组
             var categories = result["categories"] as JArray;
-            var categoryDictionary = new Dictionary<int, FriendCategory> {{0, DefaultCategory()}};
+            var categoryDictionary = new Dictionary<int, FriendCategory> { { 0, DefaultCategory() } };
             for (var i = 0; categories != null && i < categories.Count; i++)
             {
                 var category = categories[i].ToObject<FriendCategory>();

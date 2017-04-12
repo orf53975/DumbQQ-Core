@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using DumbQQ.Client;
+﻿using DumbQQ.Client;
 using DumbQQ.Constants;
 using DumbQQ.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
 
 namespace DumbQQ.Models
 {
@@ -143,7 +143,7 @@ namespace DumbQQ.Models
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((Group) obj);
+            return obj.GetType() == GetType() && Equals((Group)obj);
         }
 
         public override int GetHashCode()
@@ -155,9 +155,9 @@ namespace DumbQQ.Models
         {
             DumbQQClient.Logger.Debug("开始获取群列表");
             var response = client.Client.Post(ApiUrl.GetGroupList,
-                new JObject {{"vfwebqq", client.Vfwebqq}, {"hash", client.Hash}});
+                new JObject { { "vfwebqq", client.Vfwebqq }, { "hash", client.Hash } });
             var result =
-                ((JArray) ((JObject) client.GetResponseJson(response)["result"])["gnamelist"])
+                ((JArray)((JObject)client.GetResponseJson(response)["result"])["gnamelist"])
                 .ToObject<List<Group>>();
             result.ForEach(_ => _.Client = client);
             return result;

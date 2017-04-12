@@ -1,14 +1,8 @@
-﻿using System;
+﻿using DumbQQ.Client;
+using System;
 using System.Drawing;
 using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
-using DumbQQ.Client;
-using HttpResponse = System.Net.Http.HttpResponseMessage;
-
 
 namespace DumbQQCoreConsoleApp
 {
@@ -71,10 +65,9 @@ namespace DumbQQCoreConsoleApp
                 {
                     using (MemoryStream ms = new MemoryStream(array))
                     {
-                        Bitmap bmp = new Bitmap(Image.FromStream(ms));
                         Console.BackgroundColor = ConsoleColor.White;
                         Console.ForegroundColor = ConsoleColor.Black;
-                        Console.WriteLine(QrChar(bmp, 5, 5));
+                        Console.WriteLine(QrChar(new Bitmap(Image.FromStream(ms)), 5, 5));
                         Console.ResetColor();
                         Console.WriteLine("二维码已打印在屏幕，请使用手机QQ扫描。");
                     }
@@ -82,6 +75,7 @@ namespace DumbQQCoreConsoleApp
                 {
                     case DumbQQClient.LoginResult.Succeeded:
                         return;
+
                     case DumbQQClient.LoginResult.QrCodeExpired:
                         continue;
                     default:
@@ -100,7 +94,7 @@ namespace DumbQQCoreConsoleApp
         /// <summary>
         /// 解析二维码成字符
         /// </summary>
-        /// <param name="bmp">图片</param>
+        /// <param name="bmp">二维码图片</param>
         /// <param name="RowSize">二维码每格占几像素 宽</param>
         /// <param name="ColSize">二维码每格占几像素 高</param>
         /// <returns></returns>
@@ -146,6 +140,5 @@ namespace DumbQQCoreConsoleApp
             }
             return stringBuilder.ToString();
         }
-
     }
 }

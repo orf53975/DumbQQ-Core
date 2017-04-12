@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 
 namespace DumbQQ.Models
 {
@@ -51,7 +51,6 @@ namespace DumbQQ.Models
         /// </summary>
         [JsonProperty("users")]
         public List<GroupMember> Members { get; set; } = new List<GroupMember>();
-
 
         /// <summary>
         ///     已登录账户在此群的群名片。

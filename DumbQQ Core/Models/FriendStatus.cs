@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
-using DumbQQ.Client;
+﻿using DumbQQ.Client;
 using DumbQQ.Constants;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
 namespace DumbQQ.Models
 {
@@ -34,7 +34,7 @@ namespace DumbQQ.Models
             DumbQQClient.Logger.Debug("开始获取好友状态列表");
             var response = client.Client.Get(ApiUrl.GetFriendStatus, client.Vfwebqq, client.Psessionid);
             return
-                ((JArray) client.GetResponseJson(response)["result"])
+                ((JArray)client.GetResponseJson(response)["result"])
                 .ToObject<List<FriendStatus>>();
         }
     }

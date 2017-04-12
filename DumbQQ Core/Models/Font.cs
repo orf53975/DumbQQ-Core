@@ -10,7 +10,7 @@ namespace DumbQQ.Models
         /// <summary>
         ///     默认字体。
         /// </summary>
-        public static Font DefaultFont = new Font {Style = new[] {0, 0, 0}, Color = "000000", Name = "微软雅黑", Size = 10};
+        public static Font DefaultFont = new Font { Style = new[] { 0, 0, 0 }, Color = "000000", Name = "微软雅黑", Size = 10 };
 
         /// <summary>
         ///     样式。

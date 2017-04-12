@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
-using DumbQQ.Client;
+﻿using DumbQQ.Client;
 using DumbQQ.Constants;
 using DumbQQ.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
 namespace DumbQQ.Models
 {
@@ -23,28 +23,27 @@ namespace DumbQQ.Models
                 DumbQQClient.Logger.Debug("开始获取讨论组信息");
 
                 var response = Client.Client.Get(ApiUrl.GetDiscussionInfo, Id, Client.Vfwebqq, Client.Psessionid);
-                var result = (JObject) Client.GetResponseJson(response)["result"];
+                var result = (JObject)Client.GetResponseJson(response)["result"];
                 var info = result["info"].ToObject<DiscussionInfo>();
                 // 获得讨论组成员信息
                 var members = new Dictionary<long, DiscussionMember>();
-                var minfo = (JArray) result["mem_info"];
+                var minfo = (JArray)result["mem_info"];
                 for (var i = 0; minfo != null && i < minfo.Count; i++)
                 {
                     var member = minfo[i].ToObject<DiscussionMember>();
                     members.Add(member.Id, member);
                     info.Members.Add(member);
                 }
-                var stats = (JArray) result["mem_status"];
+                var stats = (JArray)result["mem_status"];
                 for (var i = 0; stats != null && i < stats.Count; i++)
                 {
-                    var item = (JObject) stats[i];
+                    var item = (JObject)stats[i];
                     var member = members[item["uin"].Value<long>()];
                     member.ClientType = item["client_type"].Value<int>();
                     member.Status = item["status"].Value<string>();
                 }
                 info.Members.ForEach(_ => _.Client = Client);
                 return info;
-
             });
 
         /// <summary>
@@ -83,7 +82,7 @@ namespace DumbQQ.Models
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((Discussion) obj);
+            return obj.GetType() == GetType() && Equals((Discussion)obj);
         }
 
         public override int GetHashCode()
@@ -97,13 +96,14 @@ namespace DumbQQ.Models
             var response = client.Client.Get(ApiUrl.GetDiscussionList, client.Psessionid, client.Vfwebqq,
                 RandomHelper.GetRandomDouble());
             var result =
-                ((JArray) ((JObject) client.GetResponseJson(response)["result"])["dnamelist"])
+                ((JArray)((JObject)client.GetResponseJson(response)["result"])["dnamelist"])
                 .ToObject<List<Discussion>>();
             result.ForEach(_ => _.Client = client);
             return result;
         }
 
         public static bool operator ==(Discussion left, Discussion right) => left?.Id == right?.Id;
+
         public static bool operator !=(Discussion left, Discussion right) => !(left == right);
     }
 }

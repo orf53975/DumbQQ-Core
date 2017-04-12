@@ -36,7 +36,7 @@ namespace DumbQQ.Utils
             var n = new int[4];
             for (var T = 0; T < ptwebqq.Length; T++)
                 n[T % 4] ^= ptwebqq[T];
-            string[] u = {"EC", "OK"};
+            string[] u = { "EC", "OK" };
             var v = new long[4];
             v[0] = ((uin >> 24) & 255) ^ u[0][0];
             v[1] = ((uin >> 16) & 255) ^ u[0][1];
@@ -48,12 +48,12 @@ namespace DumbQQ.Utils
             for (var t = 0; t < 8; t++)
                 u1[t] = t % 2 == 0 ? n[t >> 1] : v[t >> 1];
 
-            string[] n1 = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"};
+            string[] n1 = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F" };
             var v1 = "";
             foreach (var aU1 in u1)
             {
-                v1 += n1[(int) ((aU1 >> 4) & 15)];
-                v1 += n1[(int) (aU1 & 15)];
+                v1 += n1[(int)((aU1 >> 4) & 15)];
+                v1 += n1[(int)(aU1 & 15)];
             }
             return v1;
         }
